@@ -1,0 +1,20 @@
+services:
+
+  db:
+    image: mariadb
+    restart: always
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_PASSWORD}
+      MARIADB_DATABASE: ${DB_NAME}
+    volumes:
+      - /docker/mariadb-dump:/docker-entrypoint-initdb.d
+      - ./gtnh-dev.sql:/docker-entrypoint-initdb.d/gtnh-dev.sql
+    ports:
+      - ${DB_PORT}:${DB_PORT}
+
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
