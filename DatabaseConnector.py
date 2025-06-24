@@ -37,9 +37,11 @@ class DatabaseConnector:
 
     def execute_query(self, query, cursor):
         cursor.execute(query)
+        lines = ""
         if self.cursor.rowcount != 0:
             for line in self.cursor:
-                return line
+                lines = lines + str(line)
+            return lines
         else:
             print("Now Database entry found for provided query!")
             return None
