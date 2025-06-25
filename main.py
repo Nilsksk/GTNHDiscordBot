@@ -1,8 +1,6 @@
+import asyncio
 import os
 import time
-import random
-from datetime import datetime
-from typing import List
 
 import discord
 from discord.ext import commands
@@ -14,8 +12,9 @@ from DatabaseConnector import DatabaseConnector
 # Bot Permissions: 1126295044094016
 token = os.getenv('API_TOKEN')
 
-allgemein_channel_id = 1343316928457871394
-test_channel_id = 1343693012382908539
+info_channel_id = int(os.getenv('BOTS_INFO'))
+urgent_channel_id = int(os.getenv('BOTS_URGENT'))
+notify_interval = int(os.getenv('NOTIFY_INTERVAL'))
 
 loop_run = True
 available_members = []
@@ -75,38 +74,79 @@ def update_user(user_to_update: User):
     print(available_members)
 
 
-async def send_message():
-    message = bot.get_channel(test_channel_id)
+def info_filter(channel):
+    if channel.get_channel_id() == info_channel_id:
+        return True
+    else:
+        return False
 
-    await message.send("This is a Test {time}".format(time=datetime.now()))
+
+def urgent_filter(channel):
+    if channel.get_channel_id() == urgent_channel_id:
+        return True
+    else:
+        return False
 
 
 @bot.command()
 async def available_subscriptions(message):
-    await message.send("Available Topic to listen on::\n- {}".format("\n- ".join(map(lambda s: s.get_name(), available_subscriptions))))
+    current_channel = message.channel.id
+    if current_channel == info_channel_id:
+        await message.send("Available Topic to listen on:\n- {}".format("\n- ".join(map(lambda s: s.get_name(), filter(info_filter, available_subscriptions)))))
+    elif current_channel == urgent_channel_id:
+        await message.send("Available Topic to listen on:\n- {}".format("\n- ".join(map(lambda s: s.get_name(), filter(urgent_filter, available_subscriptions)))))
+    else:
+        return
 
 
 @bot.command()
 async def subscriptions(message):
-    for s in available_subscriptions:
-        for u in s.get_users():
-            if get_current_user_id(message) == u.get_discord_id():
-                await message.send("{}".format(s.get_name()))
+    current_channel = message.channel.id
+    if current_channel == info_channel_id or current_channel == urgent_channel_id:
+        for s in available_subscriptions:
+            for u in s.get_users():
+                if get_current_user_id(message) == u.get_discord_id():
+                    await message.send("{}".format(s.get_name()))
+    else:
+        return
 
 
 @bot.command()
 async def notify(message, subscription_name):
-    count = 0
-    for s in available_subscriptions:
-        if s.get_name() == subscription_name:
-            for usr in available_members:
-                if (usr.get_discord_id() == get_current_user_id(message)) and (usr not in s.get_users()):
-                    s.add_user(usr)
-                    count = count + 1
-                    await message.send("<@{user}> subscribed on {subscription}".format(user=get_current_user_id(message), subscription=s.get_name()))
+    current_channel = message.channel.id
+    if current_channel == info_channel_id or current_channel == urgent_channel_id:
+        count = 0
+        for s in available_subscriptions:
+            if s.get_name() == subscription_name:
+                for usr in available_members:
+                    if (usr.get_discord_id() == get_current_user_id(message)) and (usr not in s.get_users()):
+                        s.add_user(usr)
+                        count = count + 1
+                        await message.send("<@{user}> subscribed on {subscription}".format(user=get_current_user_id(message), subscription=s.get_name()))
 
-            if count == 0:
-                await message.send("Already subscribed on {subscription}".format(subscription=s.get_name()))
+                if count == 0:
+                    await message.send("Already subscribed on {subscription}".format(subscription=s.get_name()))
+    else:
+        return
+
+
+@bot.command()
+async def unnotify(message, subscription_name):
+    current_channel = message.channel.id
+    if current_channel == info_channel_id or current_channel == urgent_channel_id:
+        count = 0
+        for s in available_subscriptions:
+            if s.get_name() == subscription_name:
+                for usr in available_members:
+                    if (usr.get_discord_id() == get_current_user_id(message)) and (usr in s.get_users()):
+                        s.remove_user(usr)
+                        count = count + 1
+                        await message.send("<@{user}> unsubscribed on {subscription}".format(user=get_current_user_id(message), subscription=s.get_name()))
+
+                if count == 0:
+                    await message.send("Already unsubscribed on {subscription}".format(subscription=s.get_name()))
+    else:
+        return
 
 
 @bot.command()
@@ -125,14 +165,42 @@ def check_member(member_id: int):
 
 @bot.event
 async def on_member_join(member):
-    message = bot.get_channel(allgemein_channel_id)
+    # message = bot.get_channel(bots_info_channel_id)
     if check_member(member.id):
         available_members.append(User(member.id, member.display_name))
-        await message.send(f"Welcome {member.display_name}")
+        # await message.send(f"Welcome {member.display_name}")
     else:
-        await message.send(f"Welcome back: {member.display_name}")
+        # await message.send(f"Welcome back: {member.display_name}")
+        return
 
     print("Available Users: {}".format(available_members))
+
+
+async def notify_info_thread(subscription, query):
+    db_connector = DatabaseConnector()
+    db_connector.connect()
+    cursor = db_connector.get_cursor()
+    query_response = db_connector.execute_query(query, cursor)
+
+    await subscription.notify(query_response)
+
+    time.sleep(2)
+
+
+async def notify_helper(subscription, query):
+    db_connector = DatabaseConnector()
+    db_connector.connect()
+    cursor = db_connector.get_cursor()
+    query_response = db_connector.execute_query(query, cursor)
+
+    if subscription.get_channel_id() == urgent_channel_id:
+        await subscription.notify(query_response)
+    elif subscription.get_channel_id() == info_channel_id:
+        await subscription.notify(query_response)
+    else:
+        return
+
+    await asyncio.sleep(notify_interval)
 
 
 @bot.event
@@ -142,28 +210,31 @@ async def on_ready():
     available_members = []
     available_subscriptions = []
 
-    print("Ready!")
 
     all_members = get_members_as_list()
-    # Fill available members with empty subscriptions. Subscriptions will not be persisted
     for member in all_members:
         available_members.append(User(member.id, member.display_name))
 
     print("Available Users: {}".format(available_members))
 
-    available_subscriptions.append(Subscription("TestSubscription1", bot, allgemein_channel_id, []))
-    available_subscriptions.append(Subscription("TestSubscription2", bot, allgemein_channel_id, []))
-    available_subscriptions.append(Subscription("TestSubscription3", bot, allgemein_channel_id, []))
+    s1 = Subscription("All-Items", bot, info_channel_id, [])
+    available_subscriptions.append(s1)
+    #s2 = Subscription("TestSubscription2", bot, urgent_channel_id, [])
+    #available_subscriptions.append(s2)
+    #s3 = Subscription("TestSubscription3", bot, info_channel_id, [])
+    #available_subscriptions.append(s3)
+    print("Available Subscriptions: {}".format(available_subscriptions))
 
-    db_connector = DatabaseConnector()
-    db_connector.connect()
-    cursor = db_connector.get_cursor()
-    query_response = db_connector.execute_query("SELECT message FROM logs WHERE level=5", cursor)
-    print(query_response)
+    print("Ready!")
 
     while loop_run:
-        await available_subscriptions[random.randint(0, 2)].notify(db_connector.execute_query("SELECT message FROM logs WHERE level=5", cursor))
-        time.sleep(random.randint(1, 5))
-
+        await asyncio.gather(
+            notify_helper(s1,
+                          "WITH data AS (SELECT client_metadata.location, item_stockpiles.time time, item_ids.name, item_stockpiles.amount, ROW_NUMBER() OVER(PARTITION BY item_stockpiles.item_id ORDER BY item_stockpiles.time DESC) AS rowindex from item_stockpiles INNER JOIN client_metadata ON item_stockpiles.client_ids = client_metadata.id INNER JOIN item_ids ON item_stockpiles.item_id = item_ids.id) SELECT * FROM data WHERE rowindex = 1;"),
+            #notify_helper(s2,
+            #              "select client_metadata.location, max(item_stockpiles.time) time, item_ids.name, item_stockpiles.amount from item_stockpiles inner join client_metadata on item_stockpiles.client_ids = client_metadata.id inner join item_ids on item_stockpiles.item_id = item_ids.id GROUP BY item_stockpiles.item_id ORDER BY item_stockpiles.id DESC;"),
+            #notify_helper(s3,
+            #              "select client_metadata.location, max(item_stockpiles.time) time, item_ids.name, item_stockpiles.amount from item_stockpiles inner join client_metadata on item_stockpiles.client_ids = client_metadata.id inner join item_ids on item_stockpiles.item_id = item_ids.id GROUP BY item_stockpiles.item_id ORDER BY item_stockpiles.id DESC;")
+        )
 
 bot.run(token)

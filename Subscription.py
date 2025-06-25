@@ -39,3 +39,10 @@ class Subscription(ISubscription):
 
     def get_users(self) -> list:
         return self.users
+
+    def get_channel_id(self) -> int:
+        return self.channel_id
+
+    def __repr__(self):
+        return "(" + self.get_name() + ", " + str(self.get_channel_id()) + ")"
+
