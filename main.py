@@ -93,6 +93,9 @@ def urgent_filter(channel):
 
 @bot.command()
 async def available_subscriptions(message):
+    """
+    Prints all available Subscriptions
+    """
     current_channel = message.channel.id
     if current_channel == info_channel_id:
         await message.send("Available Topic to listen on:\n- {}".format("\n- ".join(map(lambda s: s.get_name(), filter(info_filter, available_subscriptions)))))
@@ -104,6 +107,9 @@ async def available_subscriptions(message):
 
 @bot.command()
 async def subscriptions(message):
+    """
+    Prints the current subscribed Subscriptions
+    """
     current_channel = message.channel.id
     if current_channel == info_channel_id or current_channel == urgent_channel_id:
         for s in available_subscriptions:
@@ -115,7 +121,10 @@ async def subscriptions(message):
 
 
 @bot.command()
-async def notify(message, subscription_name):
+async def notify(message, subscription_name = commands.parameter(description="Name of the Subscription you want to get notified of")):
+    """
+    Command to notify on a given Subscription
+    """
     current_channel = message.channel.id
     if current_channel == info_channel_id or current_channel == urgent_channel_id:
         count = 0
@@ -134,7 +143,10 @@ async def notify(message, subscription_name):
 
 
 @bot.command()
-async def unnotify(message, subscription_name):
+async def unnotify(message, subscription_name = commands.parameter(description="Name of the Subscription you want to unnotify from")):
+    """
+    Command to unnotify from a given Subscription
+    """
     current_channel = message.channel.id
     if current_channel == info_channel_id or current_channel == urgent_channel_id:
         count = 0
@@ -154,6 +166,9 @@ async def unnotify(message, subscription_name):
 
 @bot.command()
 async def stop_loop(message):
+    """
+    Stops the whole notifying! (DO NOT USE)
+    """
     global loop_run
     loop_run = False
     print("Stopping notify loop!")
