@@ -9,6 +9,9 @@ from Subscription import Subscription
 from User import User
 from DatabaseConnector import DatabaseConnector
 
+from dotenv import load_dotenv
+load_dotenv()
+
 # Bot Permissions: 1126295044094016
 token = os.getenv('API_TOKEN')
 
@@ -209,7 +212,6 @@ async def on_ready():
     global available_subscriptions
     available_members = []
     available_subscriptions = []
-
 
     all_members = get_members_as_list()
     for member in all_members:
