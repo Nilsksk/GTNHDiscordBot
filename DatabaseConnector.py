@@ -1,6 +1,7 @@
 import mariadb
 import sys
 import os
+from tabulate import tabulate
 
 
 class DatabaseConnector:
@@ -37,11 +38,13 @@ class DatabaseConnector:
 
     def execute_query(self, query, cursor):
         cursor.execute(query)
-        lines = ""
         if self.cursor.rowcount != 0:
-            for line in self.cursor:
-                lines = lines + str(line) + "\n"
-            return lines
+            data_nested_list = []
+            for data in self.cursor:
+                data_nested_list.append([data[0], data[1], data[2], data[3]])
+
+            data_pretty = tabulate(data_nested_list)
+            return data_pretty
         else:
             print("Now Database entry found for provided query!")
             return None

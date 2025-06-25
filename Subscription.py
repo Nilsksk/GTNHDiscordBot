@@ -13,7 +13,7 @@ class Subscription(ISubscription):
         self.users = users
 
     async def notify(self, message: str):
-        await self.channel.send("[{time}][{sub_name}]\n<@{user}>\n{msg}".format(msg=message, time=datetime.now(), sub_name=self.name, user="> <@".join(map(lambda user: str(user.get_discord_id()), self.users))))
+        await self.channel.send("[{time}][{sub_name}]\n<@{user}>\n```{msg}```".format(msg=message, time=datetime.now(), sub_name=self.name, user="> <@".join(map(lambda user: str(user.get_discord_id()), self.users))))
 
     def add_user(self, user: User) -> None:
         """
