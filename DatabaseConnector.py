@@ -40,7 +40,7 @@ class DatabaseConnector:
         lines = ""
         if self.cursor.rowcount != 0:
             for line in self.cursor:
-                lines = lines + str(line)
+                lines = lines + str(line) + "\n"
             return lines
         else:
             print("Now Database entry found for provided query!")
