@@ -1,0 +1,13 @@
+[Unit]
+Description=GTNH Discord Bot
+After=multi-user.target
+
+[Service]
+Type=idle
+Restart=on-failure
+User=<YourUser>
+ExecStart=<PathToClonedRepo>.venv/bin/python3 <PathToClonedRepo>/main.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
