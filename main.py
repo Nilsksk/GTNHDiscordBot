@@ -247,7 +247,7 @@ async def on_ready():
     while loop_run:
         await asyncio.gather(
             notify_helper(s1,
-                          "WITH data AS (SELECT client_metadata.location, item_stockpiles.time time, item_ids.name, item_stockpiles.amount, ROW_NUMBER() OVER(PARTITION BY item_stockpiles.item_id ORDER BY item_stockpiles.time DESC) AS rowindex from item_stockpiles INNER JOIN client_metadata ON item_stockpiles.client_ids = client_metadata.id INNER JOIN item_ids ON item_stockpiles.item_id = item_ids.id) SELECT * FROM data WHERE rowindex = 1;"),
+                          "WITH data AS (SELECT client_metadata.location, item_stockpiles.time, item_ids.name, item_stockpiles.amount, ROW_NUMBER() OVER(PARTITION BY item_stockpiles.item_id ORDER BY item_stockpiles.time DESC) AS rowindex from item_stockpiles INNER JOIN client_metadata ON item_stockpiles.client_ids = client_metadata.id INNER JOIN item_ids ON item_stockpiles.item_id = item_ids.id) SELECT location, time, name, amount FROM data WHERE rowindex = 1;"),
             #notify_helper(s2,
             #              "select client_metadata.location, max(item_stockpiles.time) time, item_ids.name, item_stockpiles.amount from item_stockpiles inner join client_metadata on item_stockpiles.client_ids = client_metadata.id inner join item_ids on item_stockpiles.item_id = item_ids.id GROUP BY item_stockpiles.item_id ORDER BY item_stockpiles.id DESC;"),
             #notify_helper(s3,
