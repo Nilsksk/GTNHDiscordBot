@@ -11,9 +11,19 @@ class Subscription(ISubscription):
         self.channel_id = channel_id
         self.channel = self.bot.get_channel(self.channel_id)
         self.users = users
+        self.initial_send = False
+        self.last_message = None
+        self.counter = 0
 
     async def notify(self, message: str):
-        await self.channel.send("[{time}][{sub_name}]\n<@{user}>\n```{msg}```".format(msg=message, time=datetime.now(), sub_name=self.name, user="> <@".join(map(lambda user: str(user.get_discord_id()), self.users))))
+        if self.initial_send:
+            await self.last_message.edit(content="[{time}][{sub_name}][MsgCount: {counter}]\n<@{user}>\n```{msg}```".format(msg=message, time=datetime.now(), sub_name=self.name, user="> <@".join(map(lambda user: str(user.get_discord_id()), self.users)), counter=self.counter))
+            self.counter = self.counter + 1
+        else:
+            self.last_message = await self.channel.send("[{time}][{sub_name}][MsgCount: {counter}]\n<@{user}>\n```{msg}```".format(msg=message, time=datetime.now(), sub_name=self.name, user="> <@".join(map(lambda user: str(user.get_discord_id()), self.users)), counter=self.counter))
+            if self.last_message:
+                self.initial_send = True
+                self.counter = self.counter + 1
 
     def add_user(self, user: User) -> None:
         """
