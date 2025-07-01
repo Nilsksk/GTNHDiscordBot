@@ -20,9 +20,10 @@ class Subscription(ISubscription):
             await self.last_message.edit(content="[{time}][{sub_name}][MsgCount: {counter}]\n<@{user}>\n```{msg}```".format(msg=message, time=datetime.now(), sub_name=self.name, user="> <@".join(map(lambda user: str(user.get_discord_id()), self.users)), counter=self.counter))
             self.counter = self.counter + 1
         else:
-            self.last_message = await self.channel.send("[{time}][{sub_name}]\n<@{user}>\n```{msg}```".format(msg=message, time=datetime.now(), sub_name=self.name, user="> <@".join(map(lambda user: str(user.get_discord_id()), self.users))))
+            self.last_message = await self.channel.send("[{time}][{sub_name}][MsgCount: {counter}]\n<@{user}>\n```{msg}```".format(msg=message, time=datetime.now(), sub_name=self.name, user="> <@".join(map(lambda user: str(user.get_discord_id()), self.users)), counter=self.counter))
             if self.last_message:
                 self.initial_send = True
+                self.counter = self.counter + 1
 
     def add_user(self, user: User) -> None:
         """
